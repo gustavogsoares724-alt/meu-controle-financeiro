@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Controle Financeiro</title>
+  <!-- Tailwind CSS para design moderno -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js para gráficos automáticos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans p-4 md:p-8">
+
+  <div class="max-w-4xl mx-auto space-y-6">
+    
+    <!-- Cabeçalho -->
+    <header class="flex justify-between items-center bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700">
+      <div>
+        <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-wallet text-emerald-400"></i> Meu Controle Financeiro
+        </h1>
+        <p class="text-slate-400 text-sm mt-1">Dados salvos automaticamente no seu navegador</p>
+      </div>
+      <button onclick="resetarDados()" class="text-xs text-rose-400 hover:text-rose-300 underline">
+        Resetar Padrões
+      </button>
+    </header>
+
+    <!-- Resumo dos Encartes / Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Renda Mensal</span>
+        <div class="text-2xl font-extrabold text-emerald-400 mt-2" id="cardRenda">R$ 0,00</div>
+        <span class="text-xs text-slate-500">Entrada fixa</span>
+      </div>
+
+      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total de Gastos</span>
+        <div class="text-2xl font-extrabold text-rose-400 mt-2" id="cardGastos">R$ 0,00</div>
+        <span class="text-xs text-slate-500" id="cardPctGastos">0% da renda</span>
+      </div>
+
+      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sobra Livre / Reserva</span>
+        <div class="text-2xl font-extrabold text-indigo-400 mt-2" id="cardSobra">R$ 0,00</div>
+        <span class="text-xs text-slate-500" id="cardPctSobra">0% livre</span>
+      </div>
+    </div>
+
+    <!-- Área Principal: Gráfico + Adicionar Gasto -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      <!-- Gráfico de Rosca -->
+      <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-md flex flex-col justify-center items-center">
+        <h2 class="text-lg font-semibold text-slate-200 mb-4 w-full text-left">Distribuição dos Gastos</h2>
+        <div class="w-full max-w-[280px] h-[280px] flex items-center justify-center">
+          <canvas id="graficoGastos"></canvas>
+        </div>
+      </div>
+
+      <!-- Formulário de Novo Lançamento -->
+      <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-md flex flex-col justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-200 mb-4">Adicionar Lançamento</h2>
+          <form id="formGasto" onsubmit="adicionarLancamento(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Descrição</label>
+              <input type="text" id="desc" placeholder="Ex: Mercado, Cabelo, Lanche" required
+                class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Valor (R$)</label>
+                <input type="number" step="0.01" id="valor" placeholder="0.00" required
+                  class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+              </div>
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Tipo</label>
+                <select id="tipo" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+                  <option value="Despesa">Despesa</option>
+                  <option value="Receita">Receita</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit"
+              class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg text-sm">
+              <i class="fa-solid fa-plus mr-1"></i> Adicionar Lançamento
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Lista de Lançamentos -->
+    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-md">
+      <h2 class="text-lg font-semibold text-slate-200 mb-4">Seus Lançamentos</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-300">
+          <thead class="text-xs uppercase bg-slate-900 text-slate-400 border-b border-slate-700">
+            <tr>
+              <th class="p-3">Descrição</th>
+              <th class="p-3">Tipo</th>
+              <th class="p-3">Valor</th>
+              <th class="p-3 text-right">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaCorpo" class="divide-y divide-slate-700">
+            <!-- Inserido dinamicamente via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Estrutura inicial padrão com os seus R$ 794 de renda e 3 gastos
+    const dadosPadrao = {
+      renda: 794.00,
+      lancamentos: [
+        { id: 1, desc: 'Alimentação', valor: 200.00, tipo: 'Despesa' },
+        { id: 2, desc: 'Cabelo', valor: 50.00, tipo: 'Despesa' },
+        { id: 3, desc: 'Plano de Celular', valor: 20.00, tipo: 'Despesa' }
+      ]
+    };
+
+    // Carrega dados salvos do localStorage ou usa o padrão
+    let estado = JSON.parse(localStorage.getItem('meu_controle_financeiro')) || dadosPadrao;
+
+    let chartInstance = null;
+
+    function salvar() {
+      localStorage.setItem('meu_controle_financeiro', JSON.stringify(estado));
+      atualizarTela();
+    }
+
+    function resetarDados() {
+      if (confirm("Deseja voltar para os gastos padrão (R$ 794 com Alimentação, Cabelo e Celular)?")) {
+        estado = JSON.parse(JSON.stringify(dadosPadrao));
+        salvar();
+      }
+    }
+
+    function adicionarLancamento(e) {
+      e.preventDefault();
+      const desc = document.getElementById('desc').value;
+      const valor = parseFloat(document.getElementById('valor').value);
+      const tipo = document.getElementById('tipo').value;
+
+      if (!desc || isNaN(valor) || valor <= 0) return;
+
+      if (tipo === 'Receita') {
+        estado.renda += valor;
+      } else {
+        estado.lancamentos.push({
+          id: Date.now(),
+          desc,
+          valor,
+          tipo
+        });
+      }
+
+      document.getElementById('formGasto').reset();
+      salvar();
+    }
+
+    function removerLancamento(id) {
+      estado.lancamentos = estado.lancamentos.filter(item => item.id !== id);
+      salvar();
+    }
+
+    function formatarMoeda(val) {
+      return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function atualizarTela() {
+      // Cálculos
+      const totalDespesas = estado.lancamentos.reduce((acc, item) => acc + item.valor, 0);
+      const sobra = estado.renda - totalDespesas;
+      const pctDespesas = estado.renda > 0 ? ((totalDespesas / estado.renda) * 100).toFixed(1) : 0;
+      const pctSobra = estado.renda > 0 ? ((sobra / estado.renda) * 100).toFixed(1) : 0;
+
+      // Cards
+      document.getElementById('cardRenda').innerText = formatarMoeda(estado.renda);
+      document.getElementById('cardGastos').innerText = formatarMoeda(totalDespesas);
+      document.getElementById('cardPctGastos').innerText = `${pctDespesas}% da renda`;
+      document.getElementById('cardSobra').innerText = formatarMoeda(sobra);
+      document.getElementById('cardPctSobra').innerText = `${pctSobra}% livre`;
+
+      // Tabela
+      const tbody = document.getElementById('tabelaCorpo');
+      tbody.innerHTML = '';
+
+      if (estado.lancamentos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">Nenhum gasto registrado.</td></tr>`;
+      } else {
+        estado.lancamentos.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-700/50 transition';
+          tr.innerHTML = `
+            <td class="p-3 font-medium text-white">${item.desc}</td>
+            <td class="p-3"><span class="px-2 py-1 bg-rose-500/10 text-rose-400 rounded-md text-xs">Despesa</span></td>
+            <td class="p-3 font-bold text-rose-400">${formatarMoeda(item.valor)}</td>
+            <td class="p-3 text-right">
+              <button onclick="removerLancamento(${item.id})" class="text-slate-400 hover:text-rose-400 p-1">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Gráfico
+      atualizarGrafico(totalDespesas, sobra);
+    }
+
+    function atualizarGrafico(totalDespesas, sobra) {
+      const ctx = document.getElementById('graficoGastos').getContext('2d');
+      
+      const labels = [...estado.lancamentos.map(i => i.desc), 'Sobra Livre'];
+      const data = [...estado.lancamentos.map(i => i.valor), Math.max(0, sobra)];
+      const colors = [
+        '#f43f5e', '#fb923c', '#38bdf8', '#a855f7', '#ec4899', '#facc15'
+      ];
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: [...colors.slice(0, estado.lancamentos.length), '#818cf8'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#94a3b8', font: { size: 11 } }
+            }
+          },
+          cutout: '70%'
+        }
+      });
+    }
+
+    // Inicialização
+    atualizarTela();
+  </script>
+</body>
+</html>
